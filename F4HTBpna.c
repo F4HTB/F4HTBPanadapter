@@ -336,7 +336,7 @@ int main(int argc, char * argv[]) {
       break;
       return 1;
     case 'h':
-      printf("F4HTBpna -r 192000 -d plughw:CARD=PCH,DEV=0\n or DISAPLAY=:0 sudo ./F4HTBpna -r 192000 -d plughw:CARD=GWloop,DEV=0");
+      printf("F4HTBpna -r 192000 -d plughw:CARD=PCH,DEV=0\n or DISAPLAY=:0 sudo ./F4HTBpna -r 192000 -d plughw:CARD=GWloop,DEV=0\n");
       exit(0);
       break;
     case 'd':
@@ -348,6 +348,7 @@ int main(int argc, char * argv[]) {
       break;
       return 1;
     default:
+      printf("F4HTBpna -r 192000 -d plughw:CARD=PCH,DEV=0\n or DISAPLAY=:0 sudo ./F4HTBpna -r 192000 -d plughw:CARD=GWloop,DEV=0\n");
       abort();
     }
 
