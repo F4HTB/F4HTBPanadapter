@@ -433,7 +433,7 @@ float window[sound.bufferSizeFrames];
          setoneFFTline(values);
          put_framebuffer_fbp();
 
-        sound.bufferReady = 0; 
+        sound.bufferReady = 0;  
       }
       usleep(20000);
     }
