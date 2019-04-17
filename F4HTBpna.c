@@ -1,28 +1,18 @@
 #include "config.h"
 
 #include <stdlib.h>
-
 #include <unistd.h>
-
 #include <stdio.h>
-
 #include <fcntl.h>
-
 #include <linux/fb.h>
-
 #include <sys/mman.h>
-
 #include <sys/ioctl.h>
-
 #include <linux/fb.h>
-
 #include <alsa/asoundlib.h>
-
 #include <fftw3.h>
-
 #include <math.h>
-
 #include <string.h>
+#include <pthread.h>
 
 //##################################Video variable
 struct fb_var_screeninfo vinfo;
@@ -31,12 +21,15 @@ char * framebuffer;
 char * fbp = 0;
 long int screensize = 0;
 int fbfd = 0;
+int scale = 1;
+int offsetx = 0;
 
 //##################################audio and fft variable
 int SOUND_RATE = 48000;
-char * SOUND_DEVICE = (char * )
-"default";
+char * SOUND_DEVICE = (char * )"default";
 int SOUND_SAMPLES_PER_TURN = 2048;
+bool flagscalechange = false;
+float * window;
 
 /* Global sound info. */
 struct soundInfo {
@@ -50,6 +43,17 @@ struct soundInfo {
   int reprepare;
 }
 sound;
+
+/* Global fftw info. */
+struct fftwInfo {
+  fftw_complex * in ;
+  fftw_complex * out;
+  fftw_plan plan;
+  int outlen;
+  double binWidth;
+  double * currentLine;
+}
+fftw;
 
 //##################################Audio and FFT Function
 /* Return the environment variable "name" or "def" if it's unset. */
@@ -198,16 +202,7 @@ short int getFrame(char * buffer, int i, short int channel) {
   return (buffer[(4 * i) + channel] & 0xFF) + ((buffer[(4 * i) + 1 + channel] & 0xFF) << 8);
 }
 
-/* Global fftw info. */
-struct fftwInfo {
-  fftw_complex * in ;
-  fftw_complex * out;
-  fftw_plan plan;
-  int outlen;
-  double binWidth;
-  double * currentLine;
-}
-fftw;
+
 
 /* Create FFTW-plan, allocate buffers. */
 void fftwInit(void) {
@@ -216,14 +211,14 @@ void fftwInit(void) {
   fftw.in = (fftw_complex * ) fftw_malloc(sizeof(fftw_complex) * sound.bufferSizeFrames);
   fftw.out = (fftw_complex * ) fftw_malloc(sizeof(fftw_complex) * (sound.bufferSizeFrames + 1));
 
-  fftw.plan = fftw_plan_dft_1d(sound.bufferSizeFrames, fftw.in, fftw.out, FFTW_FORWARD, FFTW_MEASURE);
+  fftw.plan = fftw_plan_dft_1d(fftw.outlen, fftw.in, fftw.out, FFTW_FORWARD, FFTW_MEASURE);
 
   fftw.currentLine = (double * ) malloc(sizeof(double) * fftw.outlen);
   memset(fftw.currentLine, 0, sizeof(double) * fftw.outlen);
 
   /* How many hertz does one "bin" comprise? */
   fftw.binWidth = (double) SOUND_RATE / (double) fftw.outlen;
-  printf("FFT Resolution = %f\n", fftw.binWidth);
+  printf("FFT Resolution = %f\nFFT out len %d\n", fftw.binWidth,fftw.outlen);
 }
 
 /* Free any FFTW resources. */
@@ -234,6 +229,33 @@ void fftwDeinit(void) {
   free(fftw.currentLine);
   fftw_cleanup();
 }
+
+//##################################Signals fucntions
+
+float *windowinginit(int N){
+
+  float *w;
+
+  w = (float*) calloc(N, sizeof(float));
+
+  //blackman harris windowing values
+  float a0 = 0.35875;
+  float a1 = 0.48829;
+  float a2 = 0.14128;
+  float a3 = 0.01168;
+
+
+  //create blackman harris window
+  for (int i = 0; i < N; i++) {
+    w[i] = a0 - (a1 * cos((2.0 * M_PI * i) / ((N) - 1))) + (a2 * cos((4.0 * M_PI * i) / ((N) - 1))) - (a3 * cos((6.0 * M_PI * i) / ((N) - 1)));
+    //w[i] = 0.5 * (1 - cos((2*M_PI)*i/(NUM_SAMPLES/2))); //hamming window
+  }
+
+	return w;
+
+}
+
+
 
 //##################################Video fucntions
 void put_pixel_32bpp(int x, int y, int r, int g, int b, int t) {
@@ -324,19 +346,101 @@ void BK_init() {
   for (unsigned int x = 0; x < vinfo.xres; x++) put_pixel_32bpp(x, (vinfo.yres / 2), 255, 255, 255, 0);
   put_framebuffer_fbp();
 }
+//##################################Inputs fucntions
+//Mouse
 
-//main function
+void *mouse_event(void* arg){
+
+	int fd, bytes, numinfo = 0;
+    unsigned char data[3];
+
+    const char *pDevice = "/dev/input/mice";
+
+    // Open Mouse
+    fd = open(pDevice, O_RDWR);
+    if(fd == -1)
+    {
+        printf("ERROR Opening %s\n", pDevice);
+        
+    }
+	
+	bool wait = false;
+    int left, middle, right, mouse_x = 0, mouse_y = 0, lastx = 0;
+    signed char x, y;
+    while(1)
+    {
+        // Read Mouse
+		
+        bytes = read(fd, data, sizeof(data));
+
+        if(bytes > 0)
+        {
+            left = data[0] & 0x1;
+            right = data[0] & 0x2;
+            middle = data[0] & 0x4;
+
+            x = (int)data[1];
+            y = (int)data[2];
+
+			mouse_x += x;
+			mouse_y += y;
+
+			if(left == 0){wait=false;usleep(20000);numinfo=0;}
+			else{
+				if(mouse_x > 350 && wait==false && flagscalechange==false)
+				{
+					if(mouse_y > 50 && scale <= 12){wait=true;scale++;flagscalechange=true;}
+					else if(mouse_y < -50 && scale > 1){
+						wait=true;scale--;flagscalechange=true;
+						if( 2*abs(offsetx) >  ((int)vinfo.xres*((scale-1))) ){
+							if(offsetx>0){offsetx=((int)vinfo.xres*((scale-1)))/2;}
+							else{offsetx=-((int)vinfo.xres*((scale-1)))/2;}
+						}	
+					}
+				}
+				else{
+					if( ( 2*abs(offsetx+(lastx-mouse_x)) <  ((int)vinfo.xres*((scale-1))) ) && numinfo > 2 && abs(x) > 10 ){offsetx+=(lastx-mouse_x);
+					}
+					lastx=mouse_x;
+					numinfo++;
+				}
+			}
+            
+        }
+    }
+
+	(void) arg;
+    return NULL;
+
+}
+
+//##################################main function
+void help()
+{
+	printf("F4HTBpna -r 192000 -d plughw:CARD=PCH,DEV=0\n or DISAPLAY=:0 sudo ./F4HTBpna -r 192000 -d plughw:CARD=GWloop,DEV=0\n");
+	printf("options:\n-r samplerate \n-d alsa device \n-t for testing \n-m touchscreen sensitive activation\n");
+	exit(0);
+}
+
 int main(int argc, char * argv[]) {
-  int c;
-  bool test = false;
-  while ((c = getopt(argc, argv, "thd:r:")) != -1)
+	int c;
+	bool test = false;
+
+ 
+
+  while ((c = getopt(argc, argv, "mthd:r:")) != -1)
     switch (c) {
+    case 'm':
+      pthread_t threadmouseevent;
+	  pthread_create(&threadmouseevent, NULL, mouse_event, NULL);
+      break;
+      return 1;
     case 't':
       test = true;
       break;
       return 1;
     case 'h':
-      printf("F4HTBpna -r 192000 -d plughw:CARD=PCH,DEV=0\n or DISAPLAY=:0 sudo ./F4HTBpna -r 192000 -d plughw:CARD=GWloop,DEV=0\n");
+      help();
       exit(0);
       break;
     case 'd':
@@ -348,36 +452,25 @@ int main(int argc, char * argv[]) {
       break;
       return 1;
     default:
-      printf("F4HTBpna -r 192000 -d plughw:CARD=PCH,DEV=0\n or DISAPLAY=:0 sudo ./F4HTBpna -r 192000 -d plughw:CARD=GWloop,DEV=0\n");
+      help();
       abort();
     }
 
-  char * values = (char * ) malloc(sizeof(char) * (vinfo.xres));
+	 
+  
+  FB_init();
 
-  SOUND_SAMPLES_PER_TURN = 720; //(SOUND_RATE * 512 / 48000); 
+  SOUND_SAMPLES_PER_TURN =  vinfo.xres * scale; 
+
+  char * values = (char * ) malloc(sizeof(char) * (SOUND_SAMPLES_PER_TURN));
 
   printf("Initialisation of audio and FFT\n");
-
   audioInit();
   fftwInit();
 
   printf("Initialisation of blackman harris windowing values\n");
+  window = windowinginit(sound.bufferSizeFrames);
 
-  float window[sound.bufferSizeFrames];
-
-  //blackman harris windowing values
-  float a0 = 0.35875;
-  float a1 = 0.48829;
-  float a2 = 0.14128;
-  float a3 = 0.01168;
-
-  //create blackman harris window
-  for (unsigned int i = 0; i < (unsigned int) sound.bufferSizeFrames; i++) {
-    window[i] = a0 - (a1 * cos((2.0 * M_PI * i) / ((sound.bufferSizeFrames) - 1))) + (a2 * cos((4.0 * M_PI * i) / ((sound.bufferSizeFrames) - 1))) - (a3 * cos((6.0 * M_PI * i) / ((sound.bufferSizeFrames) - 1)));
-    //window[i] = 0.5 * (1 - cos((2*M_PI)*i/(NUM_SAMPLES/2))); //hamming window
-  }
-
-  FB_init();
   BK_init();
 
   if (test) {
@@ -399,24 +492,25 @@ int main(int argc, char * argv[]) {
       if (sound.bufferReady) {
 
         for (unsigned int i = 0; i < (unsigned int) sound.bufferSizeFrames; i++) {
+			
           short int valq = getFrame(sound.buffer, i, CLEFT) * window[i];
-          short int vali = getFrame(sound.buffer, i, CRIGHT) * window[i];
+          short int vali = getFrame(sound.buffer, i, CRIGHT)* window[i];
 
-          fftw.in[i][_Q_] = ((2 * (double) vali / (256 * 256)));
-          fftw.in[i][_I_] = ((2 * (double) valq / (256 * 256)));
+          fftw.in[i][_Q_] = (( (double) vali / (256 * 256 * 12 * scale)));
+          fftw.in[i][_I_] = (( (double) valq / (256 * 256 * 12 * scale)));
         }
         fftw_execute(fftw.plan);
 
         unsigned int i;
-        for (int p = 0; p < fftw.outlen; p++) {
-          if (p < (fftw.outlen / 2)) {
-            i = (fftw.outlen / 2) - p;
+        for (int p = 0; p < (int)vinfo.xres; p++) {
+          if (p < ((int)(vinfo.xres / 2) - offsetx)) {
+            i = (vinfo.xres / 2) - offsetx - p;
           } else {
-            i = (fftw.outlen) - (p - (fftw.outlen / 2));
+			i = fftw.outlen - p + (vinfo.xres / 2) - offsetx;
           }
-
-          double val = sqrt(fftw.out[i][0] * fftw.out[i][0] + fftw.out[i][1] * fftw.out[i][1]);
-
+		
+          double val = (sqrt(fftw.out[i][0] * fftw.out[i][0] + fftw.out[i][1] * fftw.out[i][1]));
+		  val = log10((val*9)+1);
           val = val > 1.0 ? 1.0 : val;
 
           /* Save current line for current spectrum. */
@@ -427,8 +521,20 @@ int main(int argc, char * argv[]) {
         setoneSPECline(values);
         setoneFFTline(values);
         put_framebuffer_fbp();
+		
+		if(flagscalechange){
+			fftwDeinit();
+			audioDeinit();
+			flagscalechange=false;
+			sound.reprepare = 1;
+			SOUND_SAMPLES_PER_TURN = vinfo.xres * scale;
+			audioInit();
+			window = windowinginit(sound.bufferSizeFrames);
+			fftwInit();
+		}
 
         sound.bufferReady = 0;
+		
       }
       usleep(20000);
     }
