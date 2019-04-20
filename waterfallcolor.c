@@ -258,3 +258,27 @@ short int colormap_rainbow[256][3] = {
   { 255, 253, 253 },
   { 255, 255, 255 },
 };
+
+void read_csv(char *filename){
+	FILE *file;
+	file = fopen(filename, "r");
+	int i = 0;
+    char line[15];
+	while (fgets(line, 15, file) && (i < 256))
+    {
+        char* tmp = strdup(line);
+
+		const char* tok;
+		tok = strtok(tmp, ";");
+		colormap_rainbow[i][0]=(short int)atof(tok);
+		tok = strtok(NULL, ";");
+		colormap_rainbow[i][1]=(short int)atof(tok);
+		tok = strtok(NULL, ";");
+		colormap_rainbow[i][2]=(short int)atof(tok);
+   
+		printf("%d %d %d\n", colormap_rainbow[i][0],colormap_rainbow[i][1],colormap_rainbow[i][2]);
+
+        free(tmp);
+        i++;
+    }
+}

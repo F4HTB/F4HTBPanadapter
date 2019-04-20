@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "waterfallcolor.c"
+
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -15,6 +15,8 @@
 #include <math.h>
 #include <string.h>
 #include <pthread.h>
+
+#include "waterfallcolor.c"
 
 //##################################Video variable
 struct fb_var_screeninfo vinfo;
@@ -431,7 +433,7 @@ int main(int argc, char * argv[]) {
 
  
 
-  while ((c = getopt(argc, argv, "mthd:r:")) != -1)
+  while ((c = getopt(argc, argv, "mthd:r:c:")) != -1)
     switch (c) {
     case 'm':
       pthread_t threadmouseevent;
@@ -442,18 +444,22 @@ int main(int argc, char * argv[]) {
       test = true;
       break;
       return 1;
-    case 'h':
-      help();
-      exit(0);
-      break;
     case 'd':
       SOUND_DEVICE = optarg;
+      break;
+      return 1;
+	case 'c':
+      read_csv(optarg);
       break;
       return 1;
     case 'r':
       SOUND_RATE = atoi(optarg);
       break;
       return 1;
+    case 'h':
+      help();
+      exit(0);
+      break;
     default:
       help();
       abort();
