@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include "waterfallcolor.c"
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -288,7 +290,7 @@ void setoneFFTline(char * values) {
   pointer_shift(1, (screensize / 2 + finfo.line_length));
   for (unsigned int i = 0; i < vinfo.xres; i++) {
     int y = * (values + i) * 254 / 255;
-    put_pixel_32bpp(i, (vinfo.yres / 2 + 1), 0, 0, y, 0);
+    put_pixel_32bpp(i, (vinfo.yres / 2 + 1), colormap_rainbow[y][0], colormap_rainbow[y][1], colormap_rainbow[y][2], 0);
   }
 }
 
@@ -346,6 +348,7 @@ void BK_init() {
   for (unsigned int x = 0; x < vinfo.xres; x++) put_pixel_32bpp(x, (vinfo.yres / 2), 255, 255, 255, 0);
   put_framebuffer_fbp();
 }
+
 //##################################Inputs fucntions
 //Mouse
 
