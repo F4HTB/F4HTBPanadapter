@@ -423,7 +423,7 @@ void *mouse_event(void* arg){
 void help()
 {
 	printf("F4HTBpna -r 192000 -d plughw:CARD=PCH,DEV=0\n or DISAPLAY=:0 sudo ./F4HTBpna -r 192000 -d plughw:CARD=GWloop,DEV=0\n");
-	printf("options:\n-r samplerate \n-d alsa device \n-t for testing \n-m touchscreen sensitive activation\n");
+	printf("options:\n-r samplerate //set the samplerate from sound card\n-d alsa_device //set alsa device for input \n-t //for testing mode \n-m //touchscreen sensitive activation\n-c file  //color file name for watterfall");
 	exit(0);
 }
 
