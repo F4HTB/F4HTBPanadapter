@@ -9,8 +9,9 @@
 #define CLEFT 0
 #define CRIGHT 2
 
-#define _Q_ 0
-#define _I_ 1
+#define _I_ 0
+#define _Q_ 1
+
 
 #endif /* CONFIG_H */
 

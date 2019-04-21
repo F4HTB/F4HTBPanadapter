@@ -519,11 +519,14 @@ int main(int argc, char * argv[]) {
           }
 		
           double val = (sqrt(fftw.out[i][0] * fftw.out[i][0] + fftw.out[i][1] * fftw.out[i][1]));
-		  val = log10((val*9)+1);
+		  val =20*log10((val)); //convert to db
+
           val = val > 1.0 ? 1.0 : val;
+			
+          if(p > (vinfo.xres / 2) -4 && p < (vinfo.xres / 2) +4)val = 3; //DC suppression
 
           /* Save current line for current spectrum. */
-          *(values + p) = (char)(val * 254);
+          *(values + p) = (char)(val*3+270); //270 is the min value to show
 
         }
 
@@ -541,11 +544,15 @@ int main(int argc, char * argv[]) {
 			window = windowinginit(sound.bufferSizeFrames);
 			fftwInit();
 		}
+		
+		audioDeinit();//bether for realtime
+		audioInit();//bether for realtime
+		
 
         sound.bufferReady = 0;
 		
       }
-      usleep(20000);
+      usleep(5000 / scale); //adjuste in function of time of buffer to do verify
     }
   }
 
