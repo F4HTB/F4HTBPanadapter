@@ -667,6 +667,13 @@ int main(int argc, char * argv[]) {
         }
         fftw_execute(fftw.plan);
 
+		for (unsigned int i = 0; i < 4; i++) {//DC suppression
+		  fftw.out[i][0] = 0;
+		  fftw.out[i][1] = 0;
+		  fftw.out[SOUND_SAMPLES_PER_TURN-i][0] = 0;
+		  fftw.out[SOUND_SAMPLES_PER_TURN-i][1] = 0;
+		}
+
         unsigned int i;
         for (int p = 0; p < (int)vinfo.xres; p++) {
           if (p < ((int)(vinfo.xres / 2) - offsetx)) {
@@ -678,9 +685,7 @@ int main(int argc, char * argv[]) {
           double val = (sqrt(fftw.out[i][0] * fftw.out[i][0] + fftw.out[i][1] * fftw.out[i][1]));
 		  val =20*log10((val)); //convert to db
 
-          val = val > 1.0 ? 1.0 : val;
-			
-          if(p > ((int)vinfo.xres / 2) -4 && p < ((int)vinfo.xres / 2) +4)val = 3; //DC suppression
+          val = val > 1.0 ? 1.0 : val; 
 
           /* Save current line for current spectrum. */
           *(values + p) = (char)(val*3+270); //270 is the min value to show
