@@ -451,8 +451,43 @@ void FB_init() {
 }
 
 void BK_init() {
+
+
+
   for (unsigned int x = 0; x < vinfo.xres; x++) put_pixel_32bpp(x, (vinfo.yres / 2), 255, 255, 255, 0);
   put_framebuffer_fbp();
+}
+
+void plotscaley() {
+
+    int scaleplotoffset = 5000 / fftw.binWidth;
+	int numplotoffset = vinfo.xres/2 / scaleplotoffset;
+
+
+
+	for (unsigned int y = 0; y < 5; y++){
+		memset(framebuffer + y * finfo.line_length, 255, finfo.line_length);
+		memset(framebuffer + screensize - (y+2) * finfo.line_length, 255, finfo.line_length);
+	}
+
+	for(int s = -numplotoffset; s <= numplotoffset ; s++){
+		unsigned int k = 1;
+		if(s == 0){k=2;}
+		for (int x = -3; x < 3; x++){
+		  for (unsigned int y = 0; y < 10*k; y++) put_pixel_32bpp(vinfo.xres/2 + x + (s * scaleplotoffset), y+5, 255, 255, 255, 0);
+		  for (unsigned int y = 10*k; y > 0; y--) put_pixel_32bpp(vinfo.xres/2 + x + (s * scaleplotoffset), vinfo.yres -1 -y - 5, 255, 255, 255, 0);
+		}
+	}
+}
+
+void plotscalex() {
+
+
+	for (unsigned int x = 0; x < 5; x++){
+	  for (unsigned int y = 0; y < vinfo.yres; y++) put_pixel_32bpp(x, y, 255, 255, 255, 0);
+	  for (unsigned int y = 0; y < vinfo.yres; y++) put_pixel_32bpp(vinfo.xres - 2 - x, y, 255, 255, 255, 0);
+	}
+
 }
 
 void print_char_time(char c[], int timesss)
@@ -546,7 +581,11 @@ void *mouse_event(void* arg){
 			else{
 				if(mouse_x > 350 && wait==false && flagscalechange==false)
 				{
-					if(mouse_y > 50 && scale <= 12){wait=true;scale++;flagscalechange=true;}
+					if(mouse_y > 50 && scale <= 12){
+						wait=true;
+						scale++;
+						flagscalechange=true;
+					}
 					else if(mouse_y < -50 && scale > 1){
 						wait=true;scale--;flagscalechange=true;
 						if( 2*abs(offsetx) >  ((int)vinfo.xres*((scale-1))) ){
@@ -646,7 +685,7 @@ int main(int argc, char * argv[]) {
       for (int x = 0; x < z; x++) * (values + x) = (char)(rand() % 255);
       setoneSPECline(values);
       setoneFFTline(values);
-	  updatetextshow();
+	  if(!flagscalechange){updatetextshow();plotscaley();}
       put_framebuffer_fbp();
       usleep(20000);
     }
@@ -694,7 +733,7 @@ int main(int argc, char * argv[]) {
 
         setoneSPECline(values);
         setoneFFTline(values);
-		if(!flagscalechange)updatetextshow();
+		if(!flagscalechange){updatetextshow();plotscaley();plotscalex();}
         put_framebuffer_fbp();
 		
 		if(flagscalechange){

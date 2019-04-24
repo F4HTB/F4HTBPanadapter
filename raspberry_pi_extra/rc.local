@@ -1,0 +1,29 @@
+#!/bin/sh -e
+#
+# rc.local
+#
+# This script is executed at the end of each multiuser runlevel.
+# Make sure that the script will "exit 0" on success or any other
+# value on error.
+#
+# In order to enable or disable this script just change the execution
+# bits.
+#
+# By default this script does nothing.
+
+# Print the IP address
+
+plymouth --hide-splash
+clear > /dev/tty1
+setterm -blank 0 -cursor off
+echo 0 > /sys/class/graphics/fbcon/cursor_blink
+sleep 5 && DISAPLAY=:0  F4HTBpna -r 96000 -d hw:CARD=audioinjectorpi,DEV=0 -m &
+
+#_IP=$(hostname -I) || true
+#if [ "$_IP" ]; then
+  #printf "My IP address is %s\n" "$_IP"
+#fi
+
+clear > /dev/tty1
+
+exit 0
