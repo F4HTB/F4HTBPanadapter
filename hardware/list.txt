@@ -1,0 +1,13 @@
+1x raspberry pi zero			14€ 
+1x TFT 3.5LCD kedei SPI 		20€
+1x Audio Injector Zero			15€
+1x SD card 16Go			 	7€
+
+Total					56€
+
+Optional:
+2x audio Triad SP70 audio transformer	30€
+1x Max232 + passifs			 4€
+2x Encoder 24pulses + 1	+ passif	 5€
+
+Total optional 				39€
