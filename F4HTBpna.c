@@ -28,6 +28,8 @@ long int screensize = 0;
 int fbfd = 0;
 int scale = 1;
 int offsetx = 0;
+int pixelperdb = 3;
+int dbbottom = 90;
 
 char tmpchar[20];
 time_t secondtextshow = time(NULL);
@@ -458,37 +460,7 @@ void BK_init() {
   put_framebuffer_fbp();
 }
 
-void plotscaley() {
 
-    int scaleplotoffset = 5000 / fftw.binWidth;
-	int numplotoffset = vinfo.xres/2 / scaleplotoffset;
-
-
-
-	for (unsigned int y = 0; y < 5; y++){
-		memset(framebuffer + y * finfo.line_length, 255, finfo.line_length);
-		memset(framebuffer + screensize - (y+2) * finfo.line_length, 255, finfo.line_length);
-	}
-
-	for(int s = -numplotoffset; s <= numplotoffset ; s++){
-		unsigned int k = 1;
-		if(s == 0){k=2;}
-		for (int x = -3; x < 3; x++){
-		  for (unsigned int y = 0; y < 10*k; y++) put_pixel_32bpp(vinfo.xres/2 + x + (s * scaleplotoffset), y+5, 255, 255, 255, 0);
-		  for (unsigned int y = 10*k; y > 0; y--) put_pixel_32bpp(vinfo.xres/2 + x + (s * scaleplotoffset), vinfo.yres -1 -y - 5, 255, 255, 255, 0);
-		}
-	}
-}
-
-void plotscalex() {
-
-
-	for (unsigned int x = 0; x < 5; x++){
-	  for (unsigned int y = 0; y < vinfo.yres; y++) put_pixel_32bpp(x, y, 255, 255, 255, 0);
-	  for (unsigned int y = 0; y < vinfo.yres; y++) put_pixel_32bpp(vinfo.xres - 2 - x, y, 255, 255, 255, 0);
-	}
-
-}
 
 void print_char_time(char c[], int timesss)
 {
@@ -537,6 +509,69 @@ void printscale()
     print_char_time(word,2);
 }
 
+
+void plotscalex() {
+
+    int scaleplotoffset = 5000 / fftw.binWidth;
+	int numplotoffset = vinfo.xres/2 / scaleplotoffset;
+
+
+
+	for (unsigned int y = 0; y < 4; y++){
+		memset(framebuffer + y * finfo.line_length, 255, finfo.line_length);
+		memset(framebuffer + screensize - (y+2) * finfo.line_length, 255, finfo.line_length);
+	}
+
+	for(int s = -numplotoffset; s <= numplotoffset ; s++){
+		unsigned int k = 1;
+		if(s == 0){k=2;}
+		for (int x = -1; x < 1; x++){
+		  for (unsigned int y = 0; y < 10*k; y++) put_pixel_32bpp(vinfo.xres/2 + x + (s * scaleplotoffset), y+5, 255, 255, 255, 0);
+		  for (unsigned int y = 10*k; y > 0; y--) put_pixel_32bpp(vinfo.xres/2 + x + (s * scaleplotoffset), vinfo.yres -1 -y - 5, 255, 255, 255, 0);
+		}
+	}
+}
+
+void plotscaley() {
+
+
+
+
+	int delta = pixelperdb * (dbbottom - ((dbbottom /10)*10));
+	int dbdyna = (vinfo.yres/(2)/pixelperdb);
+
+	char word[] = "-  0";
+	if(dbbottom%10)word[3] = (dbbottom % 10);
+	if(dbbottom/10)word[2] = (dbbottom/10) % 10 +'0';
+        if(dbbottom/100)word[1] = dbbottom/100 +'0';
+	print_char(word,1, 0, vinfo.yres/(2) - 8);
+
+	unsigned int y = 10*pixelperdb;
+	while(y  < vinfo.yres/(2)){
+
+	int ywhere = vinfo.yres/(2) - y + delta;
+
+	int db = ywhere/pixelperdb - (dbdyna - dbbottom);
+
+	memset(framebuffer + (ywhere) * finfo.line_length, 255, finfo.line_length);
+
+	char word[] = "-  0";
+	word[2] = db/10 +'0';
+	if(db/100 != 0)word[1] = db/100 +'0';
+	print_char(word,1, 0, (ywhere) - 4);
+
+	
+
+	y+=(10*pixelperdb);
+	}
+
+
+	for (unsigned int x = 0; x < 4; x++){
+	  for (unsigned int y = 0; y < vinfo.yres; y++) put_pixel_32bpp(x, y, 255, 255, 255, 0);
+	  for (unsigned int y = 0; y < vinfo.yres; y++) put_pixel_32bpp(vinfo.xres - 1 - x, y, 255, 255, 255, 0);
+	}
+
+}
 
 //##################################Inputs fucntions
 //Mouse
@@ -677,6 +712,8 @@ int main(int argc, char * argv[]) {
 	  char word[] = "Startup..."; 
 	  print_char_time(word,2);
 
+
+
   if (test) {
     while (1) {
 
@@ -691,6 +728,8 @@ int main(int argc, char * argv[]) {
     }
   } else {
     while (1) {
+
+	  
 
       while (audioRead() < 0);
 
@@ -727,10 +766,13 @@ int main(int argc, char * argv[]) {
           val = val > 1.0 ? 1.0 : val; 
 
           /* Save current line for current spectrum. */
-          *(values + p) = (char)(val*3+270); //270 is the min value to show
+          *(values + p) = (char)(val*pixelperdb+dbbottom*pixelperdb); //270 is the min value to show
 
         }
-
+		audioDeinit();//bether for realtime
+		audioInit();//bether for realtime
+		sound.bufferReady = 0;
+		}
         setoneSPECline(values);
         setoneFFTline(values);
 		if(!flagscalechange){updatetextshow();plotscaley();plotscalex();}
@@ -747,14 +789,7 @@ int main(int argc, char * argv[]) {
 			fftwInit();
 		}
 		
-		audioDeinit();//bether for realtime
-		audioInit();//bether for realtime
-		
-
-        sound.bufferReady = 0;
-		
-      }
-      usleep(5000 / scale); //adjuste in function of time of buffer to do verify
+      usleep(10000 / scale); //adjuste in function of time of buffer to do verify
     }
   }
 
