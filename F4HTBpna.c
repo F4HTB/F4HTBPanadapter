@@ -19,7 +19,7 @@
 #include "waterfallcolor.c"
 
 
-bool started = 0;
+
 
 
 
@@ -27,12 +27,9 @@ bool started = 0;
 //##################################Rotary encoder variable
 struct btr {
     int pin[3];
-	bool pinstate[3];
-    bool isready[3];
-    unsigned int ttime[3];
-	unsigned int ttimelast[3];
-    pthread_t t[3];
-    int select;
+    bool swstate = 0;
+    pthread_t t[2];
+    int selectopt = 0;
 };
 
 btr Arrayofbtr[2];
@@ -555,9 +552,9 @@ void plotscaley() {
     if (dbbottom % 10) word[3] = (dbbottom % 10);
     if (dbbottom / 10) word[2] = (dbbottom / 10) % 10 + '0';
     if (dbbottom / 100) word[1] = dbbottom / 100 + '0';
-	*/
-	char word[4];
-	sprintf(word, " -%d", dbbottom);
+    */
+    char word[4];
+    sprintf(word, " -%d", dbbottom);
     print_char(word, 1, 0, ppy - 8);
 
     int y = 10 * pixelperdb;
@@ -573,18 +570,18 @@ void plotscaley() {
         word[2] = db / 10 + '0';
         if (db / 100 != 0) word[1] = db / 100 + '0';
         print_char(word, 1, 0, (ywhere) - 4);
-		*/
-        
-		char word[5];
+        */
+
+        char word[5];
         sprintf(word, " -%d", db);
         //if (db / 100 != 0) word[1] = db / 100 + '0';
         print_char(word, 1, 0, (ywhere) - 4);
-		
-		/*db/=10;db*=10;
-		char word[4];
-		sprintf(word, " -%d", 100);
-		print_char(word, 1, 0, (ywhere) - 4);*/
-		
+
+        /*db/=10;db*=10;
+        char word[4];
+        sprintf(word, " -%d", 100);
+        print_char(word, 1, 0, (ywhere) - 4);*/
+
         y += (10 * pixelperdb);
     }
 
@@ -607,105 +604,87 @@ void verifoffset() {
     }
 }
 
-void checkrotary(int tr, int trtype) {
+void checkrotary(int tr, int trtype, int sens = 0) {
 
     if(tr == 0) {
-        if(trtype < 2) {
-            if(Arrayofbtr[tr].isready[0] == 1 && Arrayofbtr[tr].isready[1] == 1)
-            {
-                int sens = 0;
-                if(Arrayofbtr[tr].ttime[0] > Arrayofbtr[tr].ttime[1]) {
-                    printf("Button %d ++\n",tr);
-                    sens=1;
-                }
-                else {
-                    printf("Button %d --\n",tr);
-                    sens=-1;
-                }
-                switch(Arrayofbtr[tr].select) {
-                case 0 :
-
-                    if((scale+sens) >0 && (scale+sens)<13) {
-                        scale+=sens;
-                        flagscalechange = true;
-                        printscale();
-                        verifoffset();
-                    }
-                    break;
-                case 1 :
-                    if ((2 * abs(offsetx + (sens*10*scale)) < ((int) vinfo.xres * ((scale - 1))))) {
-                        offsetx+=sens*10*scale;
-                    }
-                    break;
-                case 2 :
-                    if((pixelperdb+sens)>1 && (pixelperdb+sens)<30)pixelperdb+=sens;
-                    break;
-                case 3 :
-                    if((dbbottom+sens)>50 && (dbbottom+sens)<150)dbbottom+=sens;
-                    break;
-                case 4 :
-                    if((indexlistofcolorfile+sens)>=0 && (indexlistofcolorfile+sens)<=indexlistofcolorfilemax){
-						indexlistofcolorfile+=sens;
-					    char fName [128] ;
-						snprintf(fName, sizeof fName, "/etc/F4HTBpna/%s%s", listofcolorfile[indexlistofcolorfile],".256");
-						printf("%s\n",fName);
-						read_csv(fName);
-						print_char_time(listofcolorfile[indexlistofcolorfile], 2);
-					}
-                    break;
-                default :
-                    printf("Rotary Encoder fault\n" );
-                }
-                Arrayofbtr[tr].isready[0] = 0;
-                Arrayofbtr[tr].isready[1] = 0;
-            }
-        }
-        if(trtype == 2 && Arrayofbtr[tr].isready[2] == 1 && Arrayofbtr[tr].pinstate[2] == 1 && Arrayofbtr[tr].ttime[2] > (Arrayofbtr[tr].ttimelast[2] + 100000)) {
-            Arrayofbtr[tr].ttimelast[2] = Arrayofbtr[tr].ttime[2];
-			Arrayofbtr[tr].select++;
-            if(Arrayofbtr[tr].select>4)Arrayofbtr[tr].select=0;
-            switch(Arrayofbtr[tr].select) {
+        if(trtype == 0) {
+            switch(Arrayofbtr[tr].selectopt) {
             case 0 :
-                print_char_time((const char *)"   Zoom   ", 2);
+
+                if((scale+sens) >0 && (scale+sens)<13) {
+                    scale+=sens;
+                    flagscalechange = true;
+                    printscale();
+                    verifoffset();
+                }
                 break;
             case 1 :
-                print_char_time((const char *)"Offset Frq", 2);
+                if ((2 * abs(offsetx + (sens*10*scale)) < ((int) vinfo.xres * ((scale - 1))))) {
+                    offsetx+=sens*10*scale;
+                }
                 break;
             case 2 :
-                print_char_time((const char *)" RF Scale ", 2);
+                if((pixelperdb+sens)>1 && (pixelperdb+sens)<30)pixelperdb+=sens;
                 break;
             case 3 :
-                print_char_time((const char *)"Min RF Lvl", 2);
+                if((dbbottom+sens)>50 && (dbbottom+sens)<150)dbbottom+=sens;
                 break;
             case 4 :
-                print_char_time((const char *)" WF Color ", 2);
+                if((indexlistofcolorfile+sens)>=0 && (indexlistofcolorfile+sens)<=indexlistofcolorfilemax) {
+                    indexlistofcolorfile+=sens;
+                    char fName [128] ;
+                    snprintf(fName, sizeof fName, "/etc/F4HTBpna/%s%s", listofcolorfile[indexlistofcolorfile],".256");
+                    printf("%s\n",fName);
+                    read_csv(fName);
+                    print_char_time(listofcolorfile[indexlistofcolorfile], 2);
+                }
                 break;
             default :
                 printf("Rotary Encoder fault\n" );
             }
-
         }
-    }
-
+		else if(trtype == 2) {
+			Arrayofbtr[tr].selectopt++;
+			if(Arrayofbtr[tr].selectopt>4)Arrayofbtr[tr].selectopt=0;
+			switch(Arrayofbtr[tr].selectopt) {
+			case 0 :
+				print_char_time((const char *)"   Zoom   ", 2);
+				break;
+			case 1 :
+				print_char_time((const char *)"Offset Frq", 2);
+				break;
+			case 2 :
+				print_char_time((const char *)" RF Scale ", 2);
+				break;
+			case 3 :
+				print_char_time((const char *)"Min RF Lvl", 2);
+				break;
+			case 4 :
+				print_char_time((const char *)" WF Color ", 2);
+				break;
+			default :
+				printf("SW Rotary Encoder fault, selectopt %d\n",Arrayofbtr[tr].selectopt );
+			}
+		}
+	}
 }
 
 int pinread(int pin)
 {
-#define VALUE_MAX 30
-    char path[VALUE_MAX];
+    char path[30];
     char value_str[3];
     int fd;
 
-    snprintf(path, VALUE_MAX, "/sys/class/gpio/gpio%d/value", pin);
+    snprintf(path, 30, "/sys/class/gpio/gpio%d/value", pin);
     fd = open(path, O_RDONLY);
     if (-1 == fd) {
-	fprintf(stderr, "Failed to open gpio value for reading!\n");
-	return(-1);
+        fprintf(stderr, "Failed to open gpio value for reading!\n");
+        return(-1);
     }
 
     if (-1 == read(fd, value_str, 3)) {
-	fprintf(stderr, "Failed to read value!\n");
-	return(-1);
+        fprintf(stderr, "Failed to read value!\n");
+        return(-1);
     }
 
     close(fd);
@@ -727,7 +706,9 @@ void *t_lecture(void *arg)
     fd_set fds;
     char buffer[2];
 
-    printf("inside Starting thread %d,%d on pin:%d\n",tr,trtype,i);
+    unsigned int enc_a_val,enc_b_val;
+
+    //printf("inside Starting thread %d,%d on pin:%d\n",tr,trtype,i);
 
     char fName [128] ;
 
@@ -738,46 +719,81 @@ void *t_lecture(void *arg)
         perror("pin");
         return 0;
     }
-    while(1)
-    {
-        FD_ZERO(&fds);
-        FD_SET(fd,&fds);
 
-        if(select(fd+1,NULL,NULL,&fds,NULL) <0)
-        {
-            perror("select");
-            break;
-        }
+	if(trtype == 0){
+		while(1)
+		{
+			FD_ZERO(&fds);
+			FD_SET(fd,&fds);
 
-        lseek(fd,0,0);
-        if(read(fd,&buffer,2)!=2)
-        {
-            perror("read");
-            break;
-        }
-		
-		
-        if((unsigned int)clock() > (Arrayofbtr[tr].ttime[trtype] + 5000)){
-		Arrayofbtr[tr].ttime[trtype] = (unsigned int)clock();
-        Arrayofbtr[tr].isready[trtype] = 1;
-		Arrayofbtr[tr].pinstate[trtype] = pinread(i);
-        Arrayofbtr[tr].ttime[trtype] = (unsigned int)clock();
-        if(started)checkrotary(tr,trtype);
-        printf("pin %d %d ",i,pinread(Arrayofbtr[tr].pin[trtype]));
-        fprintf(stdout, "%d\n",Arrayofbtr[tr].ttime[trtype]);
-        }
+			if(select(fd+1,NULL,NULL,&fds,NULL) <0)
+			{
+				perror("select");
+				break;
+			}
 
+			lseek(fd,0,0);
+			if(read(fd,&buffer,2)!=2)
+			{
+				perror("read");
+				break;
+			}
 
+			enc_a_val = atoi((const char*) buffer);
+			enc_b_val = pinread(Arrayofbtr[tr].pin[1]);
 
+			if (enc_a_val == 1) // rising edge
+			{
+				printf("rotary %d ",tr);
+				if (enc_b_val == 0) {
+					printf("ticks--\n");
+					checkrotary(tr,trtype,-1);
+				}
+				else {
+					printf("ticks++\n");
+					checkrotary(tr,trtype,1);
+				}
+			}
+		}
+	}
+	
+	if(trtype == 2){
+		Arrayofbtr[tr].selectopt=0;
+		while(1)
+		{
+			FD_ZERO(&fds);
+			FD_SET(fd,&fds);
 
+			if(select(fd+1,NULL,NULL,&fds,NULL) <0)
+			{
+				perror("select");
+				break;
+			}
 
+			lseek(fd,0,0);
+			if(read(fd,&buffer,2)!=2)
+			{
+				perror("read");
+				break;
+			}
 
+			enc_a_val = atoi((const char*) buffer);
 
-
-    }
+			if (enc_a_val == 1) // rising edge
+			{
+				Arrayofbtr[tr].swstate = !Arrayofbtr[tr].swstate;
+				if(Arrayofbtr[tr].swstate){
+					printf("rotary %d selectopt %d\n",tr,Arrayofbtr[tr].selectopt);
+					checkrotary(tr,trtype,0);
+				}
+			}
+		}
+	}
 
     return NULL;
 }
+
+
 
 void setpin(int pin)
 {
@@ -839,18 +855,31 @@ void setpinedge(int pin) {
 
 void prepbtr(int tr) {
 
-    for(int f = 0; f <3; f++) {
-        setpin(Arrayofbtr[tr].pin[f]);
-        setpininput(Arrayofbtr[tr].pin[f]);
-        setpinactivelow(Arrayofbtr[tr].pin[f]);
-        setpinedge(Arrayofbtr[tr].pin[f]);
-        int trot[2];
-        trot[0] = tr;
-        trot[1] = f;
-        printf("try starting th %d,%d\n",trot[0],trot[1]);
-        pthread_create(&Arrayofbtr[tr].t[f],NULL,t_lecture,(void *)trot);
-        usleep(100000);
-    }
+    setpin(Arrayofbtr[tr].pin[0]);
+    setpininput(Arrayofbtr[tr].pin[0]);
+    setpinactivelow(Arrayofbtr[tr].pin[0]);
+    setpinedge(Arrayofbtr[tr].pin[0]);
+    int trotA[2];
+    trotA[0] = tr;
+    trotA[1] = 0;
+    pthread_create(&Arrayofbtr[tr].t[0],NULL,t_lecture,(void *)trotA);
+
+    setpin(Arrayofbtr[tr].pin[1]);
+    setpininput(Arrayofbtr[tr].pin[1]);
+    setpinactivelow(Arrayofbtr[tr].pin[1]);
+
+
+    setpin(Arrayofbtr[tr].pin[2]);
+    setpininput(Arrayofbtr[tr].pin[2]);
+    setpinactivelow(Arrayofbtr[tr].pin[2]);
+    setpinedge(Arrayofbtr[tr].pin[2]);
+    int trotC[2];
+    trotC[0] = tr;
+    trotC[1] = 2;
+    pthread_create(&Arrayofbtr[tr].t[2],NULL,t_lecture,(void *)trotC);
+
+    usleep(10000);
+
 
 }
 
@@ -858,11 +887,11 @@ void setupbr() {
     Arrayofbtr[0].pin[0]=17;
     Arrayofbtr[0].pin[1]=27;
     Arrayofbtr[0].pin[2]=26;
-    Arrayofbtr[1].pin[0]=24;
-    Arrayofbtr[1].pin[1]=23;
-    Arrayofbtr[1].pin[2]=13;
+    //Arrayofbtr[1].pin[0]=24;
+    //Arrayofbtr[1].pin[1]=23;
+    //Arrayofbtr[1].pin[2]=13;
     prepbtr(0);
-    prepbtr(1);
+    //prepbtr(1);
 }
 
 //##################################Inputs fucntions
@@ -940,7 +969,7 @@ void * mouse_event(void * arg) {
 void setup (void)
 {
 
-	scandirfilecolor();
+    scandirfilecolor();
 
     FB_init();
 
@@ -1008,8 +1037,6 @@ int main(int argc, char * argv[]) {
 
     setup () ;
     char * values = (char * ) malloc(sizeof(char) * (SOUND_SAMPLES_PER_TURN));
-
-    started = 1;
 
     while (1) {
 

@@ -284,7 +284,7 @@ void scandirfilecolor()
                 ret=strcmp(p,"256");
                 if(ret==0)
                 {
-				printf("%s\n",dir->d_name);
+				printf("%s,",dir->d_name);
 				strcpy( listofcolorfile[i], dir->d_name);
 				indexlistofcolorfilemax=i;
 				i++;
@@ -292,6 +292,7 @@ void scandirfilecolor()
         }
 		}
         closedir(d);
+		printf("\n");
    } 
 }
 
