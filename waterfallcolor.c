@@ -271,7 +271,7 @@ void scandirfilecolor()
     struct dirent *dir = NULL;
 	int ret,i=0;
 	char *p;
-    d = opendir(".");
+    d = opendir("/etc/F4HTBpna");
     if (d)
     {
         while ((dir = readdir(d)) != NULL)
@@ -284,7 +284,6 @@ void scandirfilecolor()
                 ret=strcmp(p,"256");
                 if(ret==0)
                 {
-            
 				printf("%s\n",dir->d_name);
 				strcpy( listofcolorfile[i], dir->d_name);
 				indexlistofcolorfilemax=i;
