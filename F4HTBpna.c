@@ -647,7 +647,7 @@ void checkrotary(int tr, int trtype) {
                     if((indexlistofcolorfile+sens)>=0 && (indexlistofcolorfile+sens)<=indexlistofcolorfilemax){
 						indexlistofcolorfile+=sens;
 					    char fName [128] ;
-						snprintf(fName, sizeof fName, "%s%s", listofcolorfile[indexlistofcolorfile],".256");
+						snprintf(fName, sizeof fName, "/etc/F4HTBpna/%s%s", listofcolorfile[indexlistofcolorfile],".256");
 						printf("%s\n",fName);
 						read_csv(fName);
 						print_char_time(listofcolorfile[indexlistofcolorfile], 2);
