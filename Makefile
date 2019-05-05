@@ -3,7 +3,7 @@ CC = g++
 EXECUTABLE = F4HTBpna
 
 CFLAGS += -Wall -Wextra -g -O0
-LDLIBS += -lm -lasound -lfftw3 -lpthread
+LDLIBS += -lm -lasound -lfftw3 -lpthread 
 
 INSTALL=install
 INSTALL_PROGRAM=$(INSTALL)

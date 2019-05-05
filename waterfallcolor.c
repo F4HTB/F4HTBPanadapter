@@ -1,4 +1,7 @@
+#include <dirent.h>
 
+int indexlistofcolorfile = 0,indexlistofcolorfilemax=0;
+char listofcolorfile[20][20];
 
 short int colormap_rainbow[256][3] = {
   { 0, 0, 0 },
@@ -259,6 +262,42 @@ short int colormap_rainbow[256][3] = {
   { 255, 255, 255 },
 };
 
+
+
+void scandirfilecolor()
+/* Scans a directory and retrieves all files of given extension */
+{
+    DIR *d = NULL;
+    struct dirent *dir = NULL;
+	int ret,i=0;
+	char *p;
+    d = opendir(".");
+    if (d)
+    {
+        while ((dir = readdir(d)) != NULL)
+        {
+			
+            p=strtok(dir->d_name,".");
+            p=strtok(NULL,".");
+            if(p!=NULL)
+            {
+                ret=strcmp(p,"256");
+                if(ret==0)
+                {
+            
+				printf("%s\n",dir->d_name);
+				strcpy( listofcolorfile[i], dir->d_name);
+				indexlistofcolorfilemax=i;
+				i++;
+			 }
+        }
+		}
+        closedir(d);
+   } 
+}
+
+
+
 void read_csv(char *filename){
 	FILE *file;
 	file = fopen(filename, "r");
@@ -276,7 +315,7 @@ void read_csv(char *filename){
 		tok = strtok(NULL, ";");
 		colormap_rainbow[i][2]=(short int)atof(tok);
    
-		printf("%d %d %d\n", colormap_rainbow[i][0],colormap_rainbow[i][1],colormap_rainbow[i][2]);
+		//printf("%d %d %d\n", colormap_rainbow[i][0],colormap_rainbow[i][1],colormap_rainbow[i][2]);
 
         free(tmp);
         i++;
