@@ -27,7 +27,6 @@
 //##################################Rotary encoder variable
 struct btr {
     int pin[3];
-    bool swstate = 0;
     pthread_t t[2];
     int selectopt = 0;
 };
@@ -781,11 +780,8 @@ void *t_lecture(void *arg)
 
 			if (enc_a_val == 1) // rising edge
 			{
-				Arrayofbtr[tr].swstate = !Arrayofbtr[tr].swstate;
-				if(Arrayofbtr[tr].swstate){
-					printf("rotary %d selectopt %d\n",tr,Arrayofbtr[tr].selectopt);
-					checkrotary(tr,trtype,0);
-				}
+				printf("rotary %d selectopt %d\n",tr,Arrayofbtr[tr].selectopt);
+				checkrotary(tr,trtype,0);
 			}
 		}
 	}
